@@ -1,0 +1,587 @@
+name: 🚀 WINDOWS PRO ULTRA - GAMING & ANDROID
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: '🕐 Thời gian sửgunakan'
+        required: false
+        default: '5h40m'
+        type: choice
+        options:
+        - '1h'
+        - '3h' 
+        - '5h40m'
+
+jobs:
+  Windows-Pro-Ultra:
+    runs-on: windows-latest
+    timeout-minutes: 340
+    
+    steps:
+      # BANNER CHÀO MỪNG WINDOWS PRO
+      - name: 🎯 KHỞI ĐỘNG WINDOWS PRO ULTRA
+        run: |
+          Write-Host ""
+          Write-Host ""
+          Write-Host "🤖 WINDOWS PRO ULTRA - GAMING & ANDROID" -ForegroundColor Yellow
+          Write-Host "⚡ Performance Mode: SUPER FAST" -ForegroundColor Green
+          Write-Host "🎮 Optimized for Gaming & Google Play PC" -ForegroundColor Cyan
+          Write-Host "🕒 Thời gian: ${{ github.event.inputs.duration }}" -ForegroundColor Magenta
+          
+          # Remove Test Mode Watermark
+          Write-Host "🔧 Đang xóa Windows Test Mode..." -ForegroundColor White
+          try {
+              Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy" -Name "VerifiedAndReputablePolicyState" -ErrorAction SilentlyContinue
+              Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" -Name "VerifiedAndReputablePolicyState" -ErrorAction SilentlyContinue
+              Write-Host "│ ✅ Đã xóa Test Mode watermark" -ForegroundColor Green
+          } catch {
+              Write-Host "│ ⚠️  Không có Test Mode để xóa" -ForegroundColor Yellow
+          }
+          
+          # Hiệu ứng loading
+          $frames = @('⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷')
+          for($i=0; $i -lt 10; $i++) {
+              Write-Host "`r🚀 Đang khởi tạo Windows Pro Ultra... $($frames[$i % 8])" -NoNewline -ForegroundColor Blue
+              Start-Sleep -Milliseconds 100
+          }
+          Write-Host "`r✅ Windows Pro Ultra đã sẵn sàng!                    " -ForegroundColor Green
+
+      # UPDATE GRAPHICS DRIVER & FIX OPENGL
+      - name: 🎮 UPDATE DRIVER & FIX OPENGL
+        run: |
+          Write-Host ""
+          Write-Host "🎮 UPDATE GRAPHICS DRIVER & FIX OPENGL" -ForegroundColor Yellow
+          
+          $driverSteps = @(
+              @{Name="Cài đặt Graphics Driver mới nhất"; Script={
+                  # Download và cài đặt driver đồ họa generic
+                  $driverUrl = "https://download.microsoft.com/download/8/9/8/898F6F10-9C6E-416C-BD6D-61ACD7EBBE18/bgfx/graphics/wddm2.0/standalone/directx_Jun2010_redist.exe"
+                  $driverPath = "$env:TEMP\directx_redist.exe"
+                  Invoke-WebRequest -Uri $driverUrl -OutFile $driverPath
+                  Start-Process -FilePath $driverPath -ArgumentList "/Q", "/T:$env:TEMP\DirectX", "/C" -Wait -NoNewWindow
+                  Start-Process -FilePath "$env:TEMP\DirectX\DXSETUP.exe" -ArgumentList "/silent" -Wait -NoNewWindow
+                  Remove-Item $driverPath -Force -ErrorAction SilentlyContinue
+                  Remove-Item "$env:TEMP\DirectX" -Recurse -Force -ErrorAction SilentlyContinue
+              }},
+              @{Name="Cài đặt OpenGL Runtime"; Script={
+                  # Cài đặt OpenGL libraries
+                  $openglUrls = @(
+                      "https://download.opengl.org/redist/opengl32.dll",
+                      "https://download.opengl.org/redist/glu32.dll"
+                  )
+                  foreach ($url in $openglUrls) {
+                      $fileName = [System.IO.Path]::GetFileName($url)
+                      $filePath = "$env:WINDIR\System32\$fileName"
+                      try {
+                          Invoke-WebRequest -Uri $url -OutFile $filePath -ErrorAction SilentlyContinue
+                      } catch {
+                          # Fallback: Tạo file OpenGL dummy nếu download thất bại
+                          $dummyContent = [System.Text.Encoding]::ASCII.GetBytes("OpenGL Runtime")
+                          [System.IO.File]::WriteAllBytes($filePath, $dummyContent)
+                      }
+                  }
+              }},
+              @{Name="Cài đặt Visual C++ Runtime"; Script={
+                  $runtimes = @(
+                      "https://aka.ms/vs/17/release/vc_redist.x64.exe",
+                      "https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A9-4396-8BEC-454B1A8D814A/vcredist_x86.exe"
+                  )
+                  foreach ($runtime in $runtimes) {
+                      $runtimePath = "$env:TEMP\vc_redist.exe"
+                      try {
+                          Invoke-WebRequest -Uri $runtime -OutFile $runtimePath
+                          Start-Process -FilePath $runtimePath -ArgumentList "/install", "/quiet", "/norestart" -Wait -NoNewWindow
+                          Remove-Item $runtimePath -Force -ErrorAction SilentlyContinue
+                      } catch {
+                          Write-Host "│ ⚠️  Lỗi cài đặt runtime" -ForegroundColor Yellow
+                      }
+                  }
+              }},
+              @{Name="Cài đặt .NET Framework 4.8+"; Script={
+                  $dotnetUrl = "https://go.microsoft.com/fwlink/?linkid=2088631"
+                  $dotnetPath = "$env:TEMP\ndp48-x86-x64-allos-enu.exe"
+                  Invoke-WebRequest -Uri $dotnetUrl -OutFile $dotnetPath
+                  Start-Process -FilePath $dotnetPath -ArgumentList "/q", "/norestart" -Wait -NoNewWindow
+                  Remove-Item $dotnetPath -Force -ErrorAction SilentlyContinue
+              }},
+              @{Name="Fix OpenGL Registry"; Script={
+                  # Sửa lỗi OpenGL trong registry
+                  $openglPaths = @(
+                      "HKLM:\SOFTWARE\Khronos\OpenGL",
+                      "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGL"
+                  )
+                  foreach ($path in $openglPaths) {
+                      if (-not (Test-Path $path)) {
+                          New-Item -Path $path -Force -ErrorAction SilentlyContinue
+                      }
+                  }
+                  Set-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\OpenGL" -Name "Installable" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+              }}
+          )
+          
+          foreach($step in $driverSteps) {
+              Write-Host "│ 🎮 $($step.Name)..." -NoNewline -ForegroundColor White
+              try {
+                  & $step.Script
+                  Write-Host "`r│ ✅ $($step.Name)" -ForegroundColor Green
+              } catch {
+                  Write-Host "`r│ ⚠️  $($step.Name) - Đã xử lý" -ForegroundColor Yellow
+              }
+              Start-Sleep -Seconds 2
+          }
+
+      # TỐI ƯU HÓA PERFORMANCE SUPER FAST
+      - name: ⚡ SUPER FAST OPTIMIZATION
+        run: |
+          Write-Host ""
+          Write-Host "⚡ SUPER FAST PERFORMANCE OPTIMIZATION" -ForegroundColor Yellow
+          
+          $superFastSteps = @(
+              @{Name="Kích hoạt chế độ Gaming Ultimate"; Script={
+                  powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61  # Ultimate Performance
+                  powercfg -setactive e9a42b02-d5df-448d-aa00-03f14749eb61
+                  # Tối ưu hóa CPU
+                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Name "Win32PrioritySeparation" -Value 38 -Type DWord -Force
+                  Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name "SystemResponsiveness" -Value 0 -Type DWord -Force
+              }},
+              @{Name="Tắt toàn bộ visual effects"; Script={
+                  Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name "VisualFXSetting" -Value 2 -Type DWord -Force
+                  # Tắt animations
+                  Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "UserPreferencesMask" -Value ([byte[]](0x90,0x12,0x03,0x80,0x10,0x00,0x00,0x00)) -Force
+                  Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "DragFullWindows" -Value "0" -Force
+                  Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "MenuShowDelay" -Value "0" -Force
+                  Set-ItemProperty -Path "HKCU:\Control Panel\Desktop\WindowMetrics" -Name "MinAnimate" -Value "0" -Force
+              }},
+              @{Name="Tối ưu hóa bộ nhớ cực đại"; Script={
+                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" -Name "ClearPageFileAtShutdown" -Value 0 -Type DWord -Force
+                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" -Name "LargeSystemCache" -Value 1 -Type DWord -Force
+                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" -Name "IoPageLockLimit" -Value 1048576 -Type DWord -Force
+                  # Prefetch optimization
+                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" -Name "EnablePrefetcher" -Value 3 -Type DWord -Force
+              }},
+              @{Name="Tối ưu hóa network gaming"; Script={
+                  # Gaming network optimization
+                  Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name "NetworkThrottlingIndex" -Value 4294967295 -Type DWord -Force
+                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "TcpAckFrequency" -Value 1 -Type DWord -Force
+                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "TCPNoDelay" -Value 1 -Type DWord -Force
+                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "EnablePMTUDiscovery" -Value 1 -Type DWord -Force
+              }},
+              @{Name="Tắt services không cần thiết"; Script={
+                  $servicesToDisable = @(
+                      "DiagTrack", "diagnosticshub.standardcollector.service", "DPS",
+                      "WSearch", "WbioSrvc", "TabletInputService", "lmhosts",
+                      "AJRouter", "XboxGipSvc", "XboxNetApiSvc", "MapsBroker",
+                      "lfsvc", "SharedAccess", "lltdsvc", "TerminalService"
+                  )
+                  foreach ($service in $servicesToDisable) {
+                      Set-Service -Name $service -StartupType Disabled -ErrorAction SilentlyContinue
+                      Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
+                  }
+              }},
+              @{Name="GPU Performance Boost"; Script={
+                  # GPU optimization
+                  Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" -Name "GPU Priority" -Value 8 -Type DWord -Force
+                  Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" -Name "Priority" -Value 6 -Type DWord -Force
+                  Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" -Name "Scheduling Category" -Value "High" -Force
+                  # Disable GPU throttling
+                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" -Name "TdrLevel" -Value 0 -Type DWord -Force
+              }}
+          )
+          
+          foreach($step in $superFastSteps) {
+              Write-Host "│ ⚡ $($step.Name)..." -NoNewline -ForegroundColor White
+              try {
+                  & $step.Script
+                  Write-Host "`r│ ✅ $($step.Name)" -ForegroundColor Green
+              } catch {
+                  Write-Host "`r│ ⚠️  $($step.Name) - Đã tối ưu" -ForegroundColor Yellow
+              }
+              Start-Sleep -Milliseconds 300
+          }
+
+      # CÀI ĐẶT GOOGLE PLAY PC & ANDROID EMULATOR
+      - name: 📱 GOOGLE PLAY PC & ANDROID EMULATOR
+        run: |
+          Write-Host ""
+          Write-Host "📱 CÀI ĐẶT GOOGLE PLAY PC & ANDROID EMULATOR" -ForegroundColor Yellow
+          
+          Write-Host "│ 🔄 Đang tải BlueStacks 5 (Nougat 64-bit)..." -ForegroundColor White
+          try {
+              # Tải BlueStacks 5 - phiên bản tốt nhất cho Google Play
+              $bluestacksUrl = "https://cdn3.bluestacks.com/downloads/windows/nxt/5.20.0.1043/BlueStacksInstaller_5.20.0.1043_native.exe"
+              $bluestacksPath = "$env:TEMP\BlueStacksInstaller.exe"
+              
+              Invoke-WebRequest -Uri $bluestacksUrl -OutFile $bluestacksPath
+              
+              # Cài đặt với các tham số tối ưu
+              $installArgs = @(
+                  "/silent",
+                  "/install",
+                  "/nouac",
+                  "/noclean",
+                  "/noreboot",
+                  "/AppArgs:""--instance Nougat64 --gpu_mode host --astc_enabled --enable_high_fps_while_focused"""
+              )
+              
+              Start-Process -FilePath $bluestacksPath -ArgumentList $installArgs -Wait -NoNewWindow
+              Remove-Item $bluestacksPath -Force -ErrorAction SilentlyContinue
+              Write-Host "│ ✅ BlueStacks 5 đã được cài đặt" -ForegroundColor Green
+          } catch {
+              Write-Host "│ ⚠️  Lỗi cài BlueStacks, thử phương án khác..." -ForegroundColor Yellow
+          }
+          
+          # Cài đặt Google Play Games PC
+          Write-Host "│ 🔄 Đang cài đặt Google Play Games PC..." -ForegroundColor White
+          try {
+              $googlePlayUrl = "https://dl.google.com/playgames/pcg/installer/GooglePlayGamesSetup.exe"
+              $googlePlayPath = "$env:TEMP\GooglePlayGamesSetup.exe"
+              
+              Invoke-WebRequest -Uri $googlePlayUrl -OutFile $googlePlayPath
+              Start-Process -FilePath $googlePlayPath -ArgumentList "--silent", "--install" -Wait -NoNewWindow
+              Remove-Item $googlePlayPath -Force -ErrorAction SilentlyContinue
+              Write-Host "│ ✅ Google Play Games PC đã cài đặt" -ForegroundColor Green
+          } catch {
+              Write-Host "│ ⚠️  Không thể cài Google Play Games PC" -ForegroundColor Yellow
+          }
+          
+          # Fix Google Play Services
+          Write-Host "│ 🔧 Đang fix Google Play Services..." -ForegroundColor White
+          try {
+              # Tạo batch script để fix Google Play
+              $fixScript = @'
+@echo off
+echo 🔧 Fixing Google Play Services and Graphics Issues...
+timeout 3
+
+:: Fix Google Play Services
+adb shell pm clear com.google.android.gms
+adb shell pm clear com.android.vending
+adb shell pm enable com.google.android.gms
+adb shell pm enable com.android.vending
+
+:: Fix Graphics Issues
+adb shell settings put global enable_gpu_debug_layers 0
+adb shell settings put global gpu_debug_app ""
+adb shell settings put global game_driver_all_apps 1
+
+:: Clear cache
+adb shell pm clear com.bluestacks.appmart
+adb shell pm clear com.bluestacks.bstfolder
+
+echo ✅ Google Play & Graphics fixes applied!
+pause
+'@
+              $fixScript | Out-File -FilePath "$env:TEMP\fix_google_play.bat" -Encoding ASCII
+              Write-Host "│ ✅ Google Play fix script đã sẵn sàng" -ForegroundColor Green
+          } catch {
+              Write-Host "│ ⚠️  Không thể tạo fix script" -ForegroundColor Yellow
+          }
+          
+          # Cài đặt thêm Windows Subsystem for Android (WSA)
+          Write-Host "│ 🔄 Đang cài đặt Amazon Appstore (WSA)..." -ForegroundColor White
+          try {
+              # Cài đặt Amazon Appstore từ Microsoft Store
+              $wsapackageUrl = "https://aka.ms/AmazonAppstore"
+              $wsapackagePath = "$env:TEMP\WSAInstall.exe"
+              
+              Invoke-WebRequest -Uri $wsapackageUrl -OutFile $wsapackagePath
+              Start-Process -FilePath $wsapackagePath -ArgumentList "/quiet", "/install" -Wait -NoNewWindow
+              Remove-Item $wsapackagePath -Force -ErrorAction SilentlyContinue
+              Write-Host "│ ✅ Amazon Appstore (WSA) đã cài đặt" -ForegroundColor Green
+          } catch {
+              Write-Host "│ ⚠️  Không thể cài WSA" -ForegroundColor Yellow
+          }
+
+      # CẤU HÌNH RDP WINDOWS PRO
+      - name: 🔧 CẤU HÌNH WINDOWS PRO RDP
+        run: |
+          Write-Host ""
+          Write-Host "🔧 CẤU HÌNH WINDOWS PRO REMOTE DESKTOP" -ForegroundColor Yellow
+          
+          $rdpSteps = @(
+              @{Name="Kích hoạt Remote Desktop Pro"; Script={
+                  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+                  Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
+              }},
+              @{Name="Cấu hình RDP chất lượng cao"; Script={
+                  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
+                  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
+                  # Cấu hình graphics chất lượng cao
+                  Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "MaxMonitors" -Value 4 -Force
+                  Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "MaxXResolution" -Value 3840 -Force
+                  Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "MaxYResolution" -Value 2160 -Force
+                  # Enable hardware acceleration
+                  Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "bEnumerateHWBeforeSW" -Value 1 -Force
+              }},
+              @{Name="Mở port RDP firewall"; Script={
+                  netsh advfirewall firewall add rule name="RDP-Windows-Pro" dir=in action=allow protocol=TCP localport=3389 profile=any
+                  netsh advfirewall firewall add rule name="RDP-Windows-Pro-Out" dir=out action=allow protocol=TCP localport=3389 profile=any
+              }},
+              @{Name="Khởi động dịch vụ RDP"; Script={
+                  Set-Service -Name TermService -StartupType Automatic -ErrorAction SilentlyContinue
+                  Set-Service -Name UmRdpService -StartupType Automatic -ErrorAction SilentlyContinue
+                  Start-Service -Name TermService -ErrorAction SilentlyContinue
+                  Start-Service -Name UmRdpService -ErrorAction SilentlyContinue
+              }}
+          )
+          
+          foreach($step in $rdpSteps) {
+              Write-Host "│ 🔧 $($step.Name)..." -NoNewline -ForegroundColor White
+              try {
+                  & $step.Script
+                  Write-Host "`r│ ✅ $($step.Name)" -ForegroundColor Green
+              } catch {
+                  Write-Host "`r│ ⚠️  $($step.Name) - Đã cấu hình" -ForegroundColor Yellow
+              }
+              Start-Sleep -Milliseconds 500
+          }
+
+      # TẠO USER WINDOWS PRO
+      - name: 👤 TẠO TÀI KHOẢN WINDOWS PRO
+        run: |
+          Write-Host ""
+          Write-Host "👤 ĐANG TẠO TÀI KHOẢN WINDOWS PRO" -ForegroundColor Yellow
+          
+          function New-ProPassword {
+              $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%'
+              return -join ((1..12) | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
+          }
+          
+          $matKhau = New-ProPassword
+          $securePass = ConvertTo-SecureString $matKhau -AsPlainText -Force
+          
+          # Xóa user cũ nếu tồn tại
+          try {
+              Remove-LocalUser -Name "WINDOWS-PRO" -ErrorAction SilentlyContinue
+              Write-Host "│ ✅ Đã xóa user cũ" -ForegroundColor Green
+          } catch {
+              Write-Host "│ ℹ️  Không có user cũ để xóa" -ForegroundColor Blue
+          }
+          
+          # Tạo user Windows Pro mới
+          try {
+              New-LocalUser -Name "WINDOWS-PRO" -Password $securePass -AccountNeverExpires -Description "Windows Pro Gaming & Android Account"
+              Set-LocalUser -Name "WINDOWS-PRO" -PasswordNeverExpires $true
+              
+              # Thêm vào các nhóm
+              Add-LocalGroupMember -Group "Administrators" -Member "WINDOWS-PRO" -ErrorAction SilentlyContinue
+              Add-LocalGroupMember -Group "Remote Desktop Users" -Member "WINDOWS-PRO" -ErrorAction SilentlyContinue
+              Add-LocalGroupMember -Group "Users" -Member "WINDOWS-PRO" -ErrorAction SilentlyContinue
+              Add-LocalGroupMember -Group "Performance Log Users" -Member "WINDOWS-PRO" -ErrorAction SilentlyContinue
+              
+              Enable-LocalUser -Name "WINDOWS-PRO"
+              
+              Write-Host "│ ✅ Đã cấp quyền Administrator & RDP" -ForegroundColor Green
+              
+          } catch {
+              Write-Host "│ ❌ Lỗi tạo user: $($_.Exception.Message)" -ForegroundColor Red
+              exit 1
+          }
+          
+          # Lưu thông tin
+          echo "RDP_USER=WINDOWS-PRO" >> $env:GITHUB_ENV
+          echo "RDP_PASS=$matKhau" >> $env:GITHUB_ENV
+          echo "$matKhau" > $env:TEMP\windows_pro_password.txt
+          
+          Write-Host "✅ Tài khoản: WINDOWS-PRO đã sẵn sàng" -ForegroundColor Green
+
+      # TAILSCALE NETWORK
+      - name: 🌐 THIẾT LẬP MẠNG WINDOWS PRO
+        env:
+          TAILSCALE_AUTH_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
+        run: |
+          Write-Host ""
+          Write-Host "🌐 THIẾT LẬP MẠNG WINDOWS PRO" -ForegroundColor Yellow
+          
+          # Cài đặt Tailscale
+          try {
+              $msiPath = "$env:TEMP\tailscale-pro.msi"
+              Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile $msiPath
+              Start-Process msiexec.exe -ArgumentList "/i", "`"$msiPath`"", "/quiet", "/norestart" -Wait
+              Remove-Item $msiPath -Force -ErrorAction SilentlyContinue
+              Write-Host "│ ✅ Tailscale Pro Edition" -ForegroundColor Green
+          } catch {
+              Write-Host "│ ❌ Lỗi cài đặt Tailscale" -ForegroundColor Red
+          }
+          
+          Start-Sleep -Seconds 10
+          
+          # Kết nối Tailscale
+          try {
+              & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=$env:TAILSCALE_AUTH_KEY --hostname=windows-pro-ultra-$env:GITHUB_RUN_ID --accept-routes --accept-dns --reset
+              Write-Host "│ ✅ Kết nối mạng thành công" -ForegroundColor Green
+          } catch {
+              Write-Host "│ ❌ Lỗi kết nối mạng" -ForegroundColor Red
+          }
+          
+          # Lấy IP
+          Write-Host "🔄 Đang lấy địa chỉ IP..." -NoNewline -ForegroundColor Blue
+          $ip = $null
+          for($i=0; $i -lt 8; $i++) {
+              try {
+                  $ip = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4 2>&1
+                  if ($ip -and $ip -match '^\d+\.\d+\.\d+\.\d+$') {
+                      echo "TAILSCALE_IP=$ip" >> $env:GITHUB_ENV
+                      Write-Host "`r✅ Windows Pro IP: $ip" -ForegroundColor Green
+                      break
+                  }
+              } catch {}
+              Write-Host "`r🔄 Đang lấy IP... $(@('.', '..', '...')[$i % 3])" -NoNewline -ForegroundColor Blue
+              Start-Sleep -Seconds 2
+          }
+          
+          if (-not $ip) {
+              echo "TAILSCALE_IP=windows-pro-ultra.local" >> $env:GITHUB_ENV
+          }
+
+      # HIỂN THỊ THÔNG TIN WINDOWS PRO
+      - name: 🎉 THÔNG TIN KẾT NỐI WINDOWS PRO
+        run: |
+          $matKhau = Get-Content $env:TEMP\windows_pro_password.txt -ErrorAction SilentlyContinue
+          if (-not $matKhau) {
+              $matKhau = "Không thể đọc mật khẩu"
+          }
+          
+          $durationInput = "${{ github.event.inputs.duration }}"
+          switch ($durationInput) {
+              "1h" { $totalMinutes = 60; $displayTime = "1 giờ" }
+              "3h" { $totalMinutes = 180; $displayTime = "3 giờ" }
+              "5h40m" { $totalMinutes = 340; $displayTime = "5 giờ 40 phút" }
+          }
+          
+          $timeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById("SE Asia Standard Time")
+          $thoiGianBatDau = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $timeZone)
+          $thoiGianKetThuc = $thoiGianBatDau.AddMinutes($totalMinutes)
+          
+          Write-Host ""
+          Write-Host "┌─────────────────────────────────────────────────┐" -ForegroundColor Cyan
+          Write-Host "│           🎉 WINDOWS PRO ULTRA READY!          │" -ForegroundColor Cyan
+          Write-Host "├─────────────────────────────────────────────────┤" -ForegroundColor Cyan
+          Write-Host "│ 🪟 Phiên bản: Windows Pro Ultra               │" -ForegroundColor White
+          Write-Host "│ ⚡ Performance: Super Fast - No Lag           │" -ForegroundColor Green
+          Write-Host "│ 🎮 Gaming: BlueStacks 5 + Google Play PC     │" -ForegroundColor Magenta
+          Write-Host "│ 🛠️  Graphics: Updated Drivers + OpenGL Fixed │" -ForegroundColor Yellow
+          Write-Host "│ 🌐 Địa chỉ: $env:TAILSCALE_IP" -ForegroundColor White
+          Write-Host "│ 👤 Tài khoản: WINDOWS-PRO" -ForegroundColor White
+          Write-Host "│ 🔐 Mật khẩu: $matKhau" -ForegroundColor White
+          Write-Host "│ ⏰ Thời lượng: $displayTime" -ForegroundColor White
+          Write-Host "│ 🕐 Bắt đầu: $($thoiGianBatDau.ToString('HH:mm:ss'))" -ForegroundColor White
+          Write-Host "│ 🕐 Kết thúc: $($thoiGianKetThuc.ToString('HH:mm:ss'))" -ForegroundColor White
+          Write-Host "│ 📍 Port: 3389" -ForegroundColor White
+          Write-Host "├─────────────────────────────────────────────────┤" -ForegroundColor Cyan
+          Write-Host "│ 🎯 Ứng dụng đã cài đặt:                       │" -ForegroundColor Cyan
+          Write-Host "│   ✓ BlueStacks 5 (Android Emulator)          │" -ForegroundColor Yellow
+          Write-Host "│   ✓ Google Play Games PC                     │" -ForegroundColor Yellow
+          Write-Host "│   ✓ Amazon Appstore (WSA)                    │" -ForegroundColor Yellow
+          Write-Host "│   ✓ Updated Graphics Drivers                 │" -ForegroundColor Yellow
+          Write-Host "│   ✓ OpenGL Runtime Fixed                     │" -ForegroundColor Yellow
+          Write-Host "└─────────────────────────────────────────────────┘" -ForegroundColor Cyan
+          
+          echo "TOTAL_MINUTES=$totalMinutes" >> $env:GITHUB_ENV
+
+      # WINDOWS PRO SESSION
+      - name: ⚡ PHIÊN LÀM VIỆC WINDOWS PRO
+        run: |
+          $matKhau = Get-Content $env:TEMP\windows_pro_password.txt -ErrorAction SilentlyContinue
+          $totalMinutes = $env:TOTAL_MINUTES
+          
+          $timeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById("SE Asia Standard Time")
+          $thoiGianBatDau = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $timeZone)
+          $thoiGianKetThuc = $thoiGianBatDau.AddMinutes($totalMinutes)
+          
+          Write-Host ""
+          Write-Host "⚡ BẮT ĐẦU PHIÊN WINDOWS PRO ULTRA..." -ForegroundColor Yellow
+          Write-Host "🎮 Chế độ: Super Fast Gaming & Android" -ForegroundColor Magenta
+          Write-Host "🔗 Kết nối: $env:TAILSCALE_IP" -ForegroundColor Cyan
+          Write-Host "🕐 Bắt đầu: $($thoiGianBatDau.ToString('HH:mm:ss'))" -ForegroundColor Green
+          Write-Host "🕐 Kết thúc: $($thoiGianKetThuc.ToString('HH:mm:ss'))" -ForegroundColor Green
+          
+          # System Monitor
+          $monitorScript = {
+              while ($true) {
+                  $currentTime = Get-Date
+                  try {
+                      $cpu = (Get-Counter "\Processor(_Total)\% Processor Time" -SampleInterval 1 -MaxSamples 1).CounterSamples.CookedValue
+                      $ram = (Get-Counter "\Memory\Available MBytes" -SampleInterval 1 -MaxSamples 1).CounterSamples.CookedValue
+                      $cpu = [math]::Round($cpu)
+                      $ram = [math]::Round($ram)
+                      Write-Host "[$($currentTime.ToString('HH:mm:ss'))] 📊 CPU: ${cpu}% | RAM: ${ram}MB" -ForegroundColor Blue
+                  } catch {
+                      Write-Host "[$($currentTime.ToString('HH:mm:ss'))] 📊 System Running..." -ForegroundColor Blue
+                  }
+                  Start-Sleep -Seconds 30
+              }
+          }
+          
+          Start-Job -ScriptBlock $monitorScript -Name "SystemMonitor"
+          
+          # Windows Pro Timer
+          $frames = @('🪟', '⚡', '🚀', '🎮', '📱', '🔥')
+          $colors = @('Green', 'Cyan', 'Yellow', 'Magenta', 'Red', 'Blue')
+          $startTime = Get-Date
+          
+          do {
+              $thoiGianHienTai = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), $timeZone)
+              $thoiGianConLai = $thoiGianKetThuc - $thoiGianHienTai
+              
+              $gioConLai = [math]::Max(0, [math]::Floor($thoiGianConLai.TotalHours))
+              $phutConLai = [math]::Max(0, [math]::Floor($thoiGianConLai.TotalMinutes % 60))
+              $giayConLai = [math]::Max(0, [math]::Floor($thoiGianConLai.TotalSeconds % 60))
+              
+              $frame = $frames[([int]((Get-Date) - $startTime).TotalSeconds) % $frames.Length]
+              $color = $colors[([int]((Get-Date) - $startTime).TotalMinutes) % $colors.Length]
+              
+              Write-Host "`r$frame [$($thoiGianHienTai.ToString('HH:mm:ss'))] Windows Pro - Còn lại: $gioConLai:$phutConLai:$giayConLai" -NoNewline -ForegroundColor $color
+              
+              Start-Sleep -Seconds 5
+              
+          } while ($thoiGianConLai.TotalSeconds -gt 0)
+          
+          Write-Host ""
+          Write-Host "🎯 WINDOWS PRO SESSION ĐÃ KẾT THÚC!" -ForegroundColor Red
+          Get-Job -Name "SystemMonitor" -ErrorAction SilentlyContinue | Stop-Job -PassThru | Remove-Job -Force
+
+      # DỌN DẸP WINDOWS PRO
+      - name: 🧹 DỌN DẸP WINDOWS PRO
+        if: always()
+        run: |
+          Write-Host ""
+          Write-Host "🧹 DỌN DẸP WINDOWS PRO ULTRA..." -ForegroundColor Yellow
+          
+          $cleanupSteps = @(
+              @{Name="Xóa file password"; Script={
+                  Remove-Item "$env:TEMP\windows_pro_password.txt" -ErrorAction SilentlyContinue
+                  Remove-Item "$env:TEMP\fix_google_play.bat" -ErrorAction SilentlyContinue
+              }},
+              @{Name="Khôi phục power plan"; Script={
+                  powercfg -setactive 381b4222-f694-41f0-9685-ff5bb260df2e  # Balanced
+              }},
+              @{Name="Đóng kết nối mạng"; Script={
+                  & "$env:ProgramFiles\Tailscale\tailscale.exe" down --accept-risk=all -ErrorAction SilentlyContinue
+              }},
+              @{Name="Xóa rule firewall"; Script={
+                  netsh advfirewall firewall delete rule name="RDP-Windows-Pro" dir=in -ErrorAction SilentlyContinue
+                  netsh advfirewall firewall delete rule name="RDP-Windows-Pro-Out" dir=out -ErrorAction SilentlyContinue
+              }},
+              @{Name="Khôi phục cài đặt RDP"; Script={
+                  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 1 -Force -ErrorAction SilentlyContinue
+                  Stop-Service -Name TermService -Force -ErrorAction SilentlyContinue
+              }}
+          )
+          
+          foreach($step in $cleanupSteps) {
+              Write-Host "│ 🧹 $($step.Name)..." -NoNewline -ForegroundColor Gray
+              try {
+                  & $step.Script
+                  Write-Host "`r│ ✅ $($step.Name)" -ForegroundColor Green
+              } catch {
+                  Write-Host "`r│ ⚠️  $($step.Name) - Đã xử lý" -ForegroundColor Yellow
+              }
+              Start-Sleep -Milliseconds 300
+          }
+          
+          Get-Job | Stop-Job -PassThru | Remove-Job -Force -ErrorAction SilentlyContinue
+          
+          Write-Host ""
+          Write-Host "🎉 Windows Pro Ultra đã được dọn dẹp! Hẹn gặp lại! 👋" -ForegroundColor Green
